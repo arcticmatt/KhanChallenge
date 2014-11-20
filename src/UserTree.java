@@ -8,7 +8,7 @@ import java.util.ArrayList;
  */
 public class UserTree implements Comparable<UserTree> {
     private int numUsers;
-    private ArrayList<User> users = new ArrayList<User>();
+    protected ArrayList<User> users = new ArrayList<User>();
     private int sourceId;
 
     /**

@@ -77,7 +77,10 @@ public class UserGraph {
     public boolean limitedInfection(int userId, int siteVersion, int limit) {
         if (userMap.containsKey(userId)) {
             User sourceUser = userMap.get(userId);
-            breadthInfectSimple(sourceUser, siteVersion, limit, true);
+            ArrayList<User> userList = new ArrayList<User>();
+            userList.add(sourceUser);
+            ArrayList<UserTree> trees = getTrees(userList);
+            infectTrees(trees, siteVersion, limit);
             return true;
         }
         return false;
@@ -87,31 +90,31 @@ public class UserGraph {
      * Does a smarter/contained limited infection of the graph. This method gets all the
      * trees of the graph, and finds the tree that has the number of vertices closest to the passed-in
      * limit parameter. It then completely infects that tree.
-     * @param userId      the userId to start the limited infection from
      * @param siteVersion the siteVersion to infect users with
      * @param limit       the limit on number of users to infect. In this case, not a hard limit.
-     * @return            the id of the user from which the limited infection was started, or -1.
+     * @return            true if infection succeeded, false otherwise
      */
-    public int limitedInfectionSmart(int userId, int siteVersion, int limit) {
+    public boolean limitedInfectionSmart(int siteVersion, int limit) {
         ArrayList<UserTree> trees = getTrees(userList);
         int minDiff = Integer.MAX_VALUE;
-        int sourceId = userId;
+        UserTree sourceTree = null;
         int newLimit = limit;
         for (UserTree tree : trees) {
             int userDiff = Math.abs(limit - tree.getNumUsers());
             if (userDiff < minDiff) {
                 minDiff = userDiff;
-                sourceId = tree.getSourceId();
+                sourceTree = tree;
                 newLimit = tree.getNumUsers();
             }
         }
-        if (userMap.containsKey(sourceId)) {
-            System.out.println("sourceUser = " + sourceId + ", minDiff = " + minDiff + ", newLimit = " + newLimit);
-            User sourceUser = userMap.get(sourceId);
-            breadthInfectSimple(sourceUser, siteVersion, newLimit, true);
-            return sourceId;
+        if (sourceTree != null) {
+            ArrayList<UserTree> treeList = new ArrayList<UserTree>();
+            treeList.add(sourceTree);
+            infectTrees(treeList, siteVersion, newLimit);
+            return true;
+        } else {
+            return false;
         }
-        return -1;
     }
 
     /**
@@ -139,13 +142,8 @@ public class UserGraph {
     private boolean limitedInfectionRecursive(int siteVersion, int limit, ArrayList<UserTree> remainingTrees,
                                              ArrayList<UserTree> removedTrees) {
         if (limit == 0) {
-            ArrayList<User> users = new ArrayList<User>();
-            for (UserTree userTree : removedTrees) {
-                if (userMap.containsKey(userTree.getSourceId()))
-                    users.add(userMap.get(userTree.getSourceId()));
-            }
-            breadthInfectMultiple(users, siteVersion, Integer.MAX_VALUE);
-            System.out.println("here with users.size() = " + users.size());
+            infectTrees(removedTrees, siteVersion, Integer.MAX_VALUE);
+            System.out.println("numTrees = " + removedTrees.size());
             return true;
         }
         for (int i = 0; i < remainingTrees.size(); i++) {
@@ -168,61 +166,37 @@ public class UserGraph {
     public boolean totalInfection(int userId, int siteVersion) {
         if (userMap.containsKey(userId)) {
             User sourceUser = userMap.get(userId);
-            breadthInfectSimple(sourceUser, siteVersion, userMap.size(), true);
+            ArrayList<User> userList = new ArrayList<User>();
+            userList.add(sourceUser);
+            ArrayList<UserTree> trees = getTrees(userList);
+            infectTrees(trees, siteVersion, userMap.size());
             return true;
         }
         return false;
     }
 
     /**
-     * Infects the graph by running BFS starting from each user in a list.
-     * @param users       the users to start BFS from
+     * Infects the graph by infecting the passed in trees
+     * @param trees       the trees to infect
      * @param siteVersion the siteVersion to infect users with
      * @param limit       the limit on number of users to infect
      * @return            the number of users infected
      */
-    private int breadthInfectMultiple(ArrayList<User> users, int siteVersion, int limit) {
-        setUserColors(User.Color.WHITE);
+    private int infectTrees(ArrayList<UserTree> trees, int siteVersion, int limit) {
         int count = 0;
-        for (User u : users) {
-            count += breadthInfectSimple(u, siteVersion, limit, false);
-        }
-        return count;
-    }
-
-    /**
-     * Infects the graph by running BFS starting from a single user.
-     * @param sourceUser  the user to start the BFS from
-     * @param siteVersion the siteVersion to infect users with
-     * @param limit       the limit on number of users to infect
-     * @param setWhite    a boolean that determines whether or not to reset all user colors to white
-     * @return            the number of users infected
-     */
-    private int breadthInfectSimple(User sourceUser, int siteVersion, int limit, boolean setWhite) {
-        if (setWhite)
-            setUserColors(User.Color.WHITE);
-        Deque<User> queue = new ArrayDeque<User>();
-        if (sourceUser.color == User.Color.WHITE)
-            queue.addLast(sourceUser);
-        int count = 0;
-        while (!queue.isEmpty() && count < limit) {
-            User u = queue.pollFirst();
-            for (User v : u.getStudents()) {
-                if (v.color == User.Color.WHITE) {
-                    v.color = User.Color.GREY;
-                    queue.addLast(v);
-                }
+        boolean breakFlag = false;
+        for (UserTree tree : trees) {
+            for (User user : tree.users) {
+                user.setSiteVersion(siteVersion);
+                infectedUserIds.add(user.getId());
+                count++;
+                if (count > limit)
+                    breakFlag = true;
+                if (breakFlag)
+                    break;
             }
-            for (User v : u.getTeachers()) {
-                if (v.color == User.Color.WHITE) {
-                    v.color = User.Color.GREY;
-                    queue.addLast(v);
-                }
-            }
-            u.color = User.Color.BLACK;
-            u.setSiteVersion(siteVersion);
-            infectedUserIds.add(u.getId());
-            count++;
+            if (breakFlag)
+                break;
         }
         return count;
     }
@@ -324,7 +298,8 @@ public class UserGraph {
         }
         UserGraph userGraph = new UserGraph(users);
         int id = 8;
-        //int sourceVertex = userGraph.limitedInfectionSmart(8, 7, 10);
+        //userGraph.limitedInfection(9, 9, 3);
+        //userGraph.limitedInfectionSmart(8, 7);
         //userGraph.totalInfection(10, 1);
         userGraph.limitedInfectionRecursive(7, 22);
         userGraph.showEntireGraph();
