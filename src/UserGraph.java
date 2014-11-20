@@ -169,7 +169,7 @@ public class UserGraph {
             ArrayList<User> userList = new ArrayList<User>();
             userList.add(sourceUser);
             ArrayList<UserTree> trees = getTrees(userList);
-            infectTrees(trees, siteVersion, userMap.size());
+            infectTrees(trees, siteVersion, Integer.MAX_VALUE);
             return true;
         }
         return false;
@@ -187,13 +187,13 @@ public class UserGraph {
         boolean breakFlag = false;
         for (UserTree tree : trees) {
             for (User user : tree.users) {
-                user.setSiteVersion(siteVersion);
-                infectedUserIds.add(user.getId());
-                count++;
-                if (count > limit)
+                if (count >= limit)
                     breakFlag = true;
                 if (breakFlag)
                     break;
+                user.setSiteVersion(siteVersion);
+                infectedUserIds.add(user.getId());
+                count++;
             }
             if (breakFlag)
                 break;
@@ -297,7 +297,6 @@ public class UserGraph {
             users.put(i, u);
         }
         UserGraph userGraph = new UserGraph(users);
-        int id = 8;
         //userGraph.limitedInfection(9, 9, 3);
         //userGraph.limitedInfectionSmart(8, 7);
         //userGraph.totalInfection(10, 1);
