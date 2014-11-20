@@ -1,4 +1,4 @@
-package Interviews.KhanAcademy;
+package src;
 
 import java.util.*;
 
