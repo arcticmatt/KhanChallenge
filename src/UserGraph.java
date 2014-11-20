@@ -77,9 +77,7 @@ public class UserGraph {
     public boolean limitedInfection(int userId, int siteVersion, int limit) {
         if (userMap.containsKey(userId)) {
             User sourceUser = userMap.get(userId);
-            ArrayList<User> userList = new ArrayList<User>();
-            userList.add(sourceUser);
-            ArrayList<UserTree> trees = getTrees(userList);
+            ArrayList<UserTree> trees = getUserTreeList(sourceUser);
             infectTrees(trees, siteVersion, limit);
             return true;
         }
@@ -166,9 +164,7 @@ public class UserGraph {
     public boolean totalInfection(int userId, int siteVersion) {
         if (userMap.containsKey(userId)) {
             User sourceUser = userMap.get(userId);
-            ArrayList<User> userList = new ArrayList<User>();
-            userList.add(sourceUser);
-            ArrayList<UserTree> trees = getTrees(userList);
+            ArrayList<UserTree> trees = getUserTreeList(sourceUser);
             infectTrees(trees, siteVersion, Integer.MAX_VALUE);
             return true;
         }
@@ -199,6 +195,18 @@ public class UserGraph {
                 break;
         }
         return count;
+    }
+
+    /**
+     * Returns a list of trees for the passed in user (will just be one tree).
+     * This is to get something to pass into the method infectTrees.
+     * @param user the user to get the list of trees for
+     */
+    private ArrayList<UserTree> getUserTreeList(User user) {
+        ArrayList<User> users = new ArrayList<User>();
+        users.add(user);
+        ArrayList<UserTree> trees = getTrees(users);
+        return trees;
     }
 
     /**
@@ -298,7 +306,7 @@ public class UserGraph {
         }
         UserGraph userGraph = new UserGraph(users);
         //userGraph.limitedInfection(9, 9, 3);
-        //userGraph.limitedInfectionSmart(8, 7);
+        //userGraph.limitedInfectionSmart(8, 2);
         //userGraph.totalInfection(10, 1);
         userGraph.limitedInfectionRecursive(7, 22);
         userGraph.showEntireGraph();
